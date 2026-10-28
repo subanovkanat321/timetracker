@@ -57,6 +57,31 @@ class EmployeeServiceTests extends IntegrationTest {
 	}
 
 	@Test
+	void rejectsInvisibleCharactersOutsideBasicPlane() {
+		// Теги U+E0041, U+E0042 — невидимые «форматные» символы за пределами U+FFFF
+		String tags = new String(Character.toChars(0xE0041)) + new String(Character.toChars(0xE0042));
+		assertThatThrownBy(() -> employees.add("Айбек" + tags)).isInstanceOf(BusinessException.class)
+			.hasMessage("Имя содержит недопустимые символы");
+	}
+
+	@Test
+	void normalizesSpacesSoLookAlikeNamesAreDuplicates() {
+		// Неразрывные и повторные пробелы — тот же человек, что и с обычным пробелом
+		assertThat(employees.add("\u00A0Иван\u00A0\u00A0Петров\u202F")).isEqualTo("Иван Петров");
+		assertThatThrownBy(() -> employees.add("Иван Петров")).isInstanceOf(BusinessException.class)
+			.hasMessage("Сотрудник «Иван Петров» уже есть");
+		// Из одних неразрывных пробелов имя не сложить
+		assertThatThrownBy(() -> employees.add("\u00A0\u00A0")).isInstanceOf(BusinessException.class)
+			.hasMessage("Введите имя сотрудника");
+	}
+
+	@Test
+	void nameNeedsLetterOrDigit() {
+		assertThatThrownBy(() -> employees.add("---")).isInstanceOf(BusinessException.class)
+			.hasMessage("Имя должно содержать буквы или цифры");
+	}
+
+	@Test
 	void listsEmployeesByNameIgnoringCase() {
 		employees.add("нургуль");
 		employees.add("Айбек");

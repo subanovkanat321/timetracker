@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class EmployeeService {
 
-	static final int MAX_NAME_LENGTH = 100;
+	public static final int MAX_NAME_LENGTH = 100;
 
 	private final EmployeeRepository employees;
 
@@ -30,18 +30,21 @@ public class EmployeeService {
 	}
 
 	/**
-	 * Добавляет сотрудника и возвращает сохранённое имя (без пробелов по краям).
+	 * Добавляет сотрудника и возвращает сохранённое имя (пробелы нормализованы).
 	 * Дубликат без учёта регистра отсекает индекс employee_name_uq на lower(name):
 	 * {@code ON CONFLICT ... DO NOTHING} тогда ничего не вставляет — проверять заранее не нужно.
 	 */
 	@Transactional
 	public String add(String rawName) {
-		String name = rawName == null ? "" : rawName.strip();
+		String name = Texts.normalizeSpaces(rawName);
 		if (name.isEmpty()) {
 			throw new BusinessException("Введите имя сотрудника");
 		}
 		if (Texts.hasForbiddenCharacters(name)) {
 			throw new BusinessException("Имя содержит недопустимые символы");
+		}
+		if (!Texts.hasLetterOrDigit(name)) {
+			throw new BusinessException("Имя должно содержать буквы или цифры");
 		}
 		if (name.length() > MAX_NAME_LENGTH) {
 			throw new BusinessException("Имя длиннее " + MAX_NAME_LENGTH + " символов");

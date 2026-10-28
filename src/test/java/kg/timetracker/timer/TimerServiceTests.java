@@ -160,6 +160,27 @@ class TimerServiceTests extends IntegrationTest {
 	}
 
 	@Test
+	void descriptionWithInvisibleCharactersOutsideBasicPlaneIsRejected() {
+		long id = insertEmployee("Айбек");
+		String tag = new String(Character.toChars(0xE0041));
+
+		assertThatThrownBy(() -> timers.start(id, "Задача" + tag)).isInstanceOf(BusinessException.class)
+			.hasMessage("Описание содержит недопустимые символы");
+	}
+
+	@Test
+	void stopAfterClockWentBackDoesNotFail() {
+		long id = insertEmployee("Айбек");
+		timers.start(id, "Задача");
+		// Часы сервера ушли назад (коррекция NTP): «сейчас» раньше старта
+		clock.advance(Duration.ofMinutes(-30));
+
+		timers.stop(id);
+
+		assertThat(count("select count(*) from time_entry where ended_at = started_at")).isEqualTo(1);
+	}
+
+	@Test
 	void timesAreStoredInWholeSeconds() {
 		long id = insertEmployee("Айбек");
 		clock.set(MutableClock.DEFAULT.plusMillis(1_600));

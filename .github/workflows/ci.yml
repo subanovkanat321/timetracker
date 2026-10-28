@@ -46,15 +46,17 @@ jobs:
       - name: Приложение отвечает, демо-данные на месте
         run: |
           for _ in $(seq 1 60); do curl -fs localhost:8080/ > /dev/null && break; sleep 2; done
-          curl -fs localhost:8080/ | grep -q 'Айбек Садыков'
-          curl -fs localhost:8080/report | grep -q 'Итого по сотрудникам'
+          # Сначала ответ целиком, потом grep: при pipefail `curl | grep -q` может упасть,
+          # если grep закроет канал раньше, чем curl допишет ответ
+          home=$(curl -fs localhost:8080/); grep -q 'Айбек Садыков' <<< "$home"
+          report=$(curl -fs localhost:8080/report); grep -q 'Итого по сотрудникам' <<< "$report"
       - name: Данные переживают перезапуск
         run: |
           curl -fs -o /dev/null -X POST -d 'name=Проверка Перезапуска' localhost:8080/employees
           docker compose down
           docker compose up -d
           for _ in $(seq 1 60); do curl -fs localhost:8080/ > /dev/null && break; sleep 2; done
-          curl -fs localhost:8080/ | grep -q 'Проверка Перезапуска'
+          home=$(curl -fs localhost:8080/); grep -q 'Проверка Перезапуска' <<< "$home"
       - name: Логи
         if: always()
         run: docker compose logs --no-color --tail 200

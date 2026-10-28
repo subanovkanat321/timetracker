@@ -54,6 +54,16 @@ class WebTests extends IntegrationTest {
 	}
 
 	@Test
+	void failedPostEchoesNoMoreThanFieldLimit() throws Exception {
+		// Введённое возвращается в форму через сессию: огромный ввод не должен в ней оседать
+		mvc.perform(post("/employees").param("name", "я".repeat(5_000)))
+			.andExpect(flash().attribute("name", "я".repeat(100)));
+		long id = insertEmployee("Айбек");
+		mvc.perform(post("/employees/{id}/start", id).param("description", "x".repeat(50_000)))
+			.andExpect(flash().attribute("description", "x".repeat(500)));
+	}
+
+	@Test
 	void runningTimerIsShownWithStopButton() throws Exception {
 		long id = insertEmployee("Айбек");
 		mvc.perform(post("/employees/{id}/start", id).param("description", "Вёрстка отчёта"))

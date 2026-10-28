@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class TimerService {
 
-	static final int MAX_DESCRIPTION_LENGTH = 500;
+	public static final int MAX_DESCRIPTION_LENGTH = 500;
 
 	private final TimeEntryRepository entries;
 
@@ -47,7 +47,7 @@ public class TimerService {
 	 */
 	@Transactional
 	public void start(long employeeId, String rawDescription) {
-		String description = rawDescription == null ? "" : rawDescription.strip();
+		String description = Texts.normalizeSpaces(rawDescription);
 		if (description.isEmpty()) {
 			throw new BusinessException("Опишите задачу перед запуском таймера");
 		}

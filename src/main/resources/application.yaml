@@ -14,6 +14,9 @@ spring:
 
 server:
   port: ${APP_PORT:8080}
+  tomcat:
+    # Формы здесь — имя и описание до 500 символов; больше 16 КБ не нужно (по умолчанию 2 МБ)
+    max-http-form-post-size: 16KB
   servlet:
     session:
       # Сессия нужна только для flash-сообщений после редиректа. Без этой строки Tomcat при

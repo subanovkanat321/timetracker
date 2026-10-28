@@ -6,6 +6,7 @@ import java.util.List;
 
 import kg.timetracker.BusinessException;
 import kg.timetracker.Formats;
+import kg.timetracker.Texts;
 import kg.timetracker.employee.EmployeeService;
 import kg.timetracker.timer.TimeEntry;
 import kg.timetracker.timer.TimerService;
@@ -63,7 +64,9 @@ class EmployeesController {
 		}
 		catch (BusinessException e) {
 			redirect.addFlashAttribute("error", e.getMessage());
-			redirect.addFlashAttribute("name", name);
+			// Введённое возвращается через сессию: не больше лимита поля, иначе огромный POST
+			// оседает в памяти сервера на всё время жизни сессии
+			redirect.addFlashAttribute("name", Texts.limit(name, EmployeeService.MAX_NAME_LENGTH));
 		}
 		return "redirect:/";
 	}
@@ -78,7 +81,7 @@ class EmployeesController {
 			redirect.addFlashAttribute("error", e.getMessage());
 			// Введённое описание возвращается в строку того же сотрудника
 			redirect.addFlashAttribute("failedEmployeeId", id);
-			redirect.addFlashAttribute("description", description);
+			redirect.addFlashAttribute("description", Texts.limit(description, TimerService.MAX_DESCRIPTION_LENGTH));
 		}
 		return "redirect:/";
 	}
