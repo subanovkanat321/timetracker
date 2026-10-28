@@ -1,11 +1,15 @@
 # Учёт рабочего времени
 
+[![CI](https://github.com/subanovkanat321/timetracker/actions/workflows/ci.yml/badge.svg)](https://github.com/subanovkanat321/timetracker/actions/workflows/ci.yml)
+
 Небольшое веб-приложение: сотрудники запускают и останавливают таймер с описанием задачи,
 руководитель смотрит записи и общее время каждого сотрудника за выбранный период. Данные
 хранятся в PostgreSQL и переживают перезапуск. Все данные в проекте вымышленные.
 
 **Стек:** Java 21, Spring Boot 4.1.1 (Spring MVC, Thymeleaf, Data JPA, JDBC), PostgreSQL 17,
 Flyway. Для тестов — JUnit 5, MockMvc, Testcontainers.
+
+![Главная страница: сотрудники и таймеры](docs/screenshot.jpg)
 
 ## Запуск
 
@@ -77,7 +81,7 @@ Flyway (`src/main/resources/db/migration`).
 ./mvnw verify
 ```
 
-Нужен Docker: тесты поднимают настоящий PostgreSQL через Testcontainers. Всего 58 тестов, они
+Нужен Docker: тесты поднимают настоящий PostgreSQL через Testcontainers. Всего 62 теста, они
 же идут в CI на каждый PR.
 
 | Тесты | Что проверяют |
