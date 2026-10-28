@@ -1,0 +1,36 @@
+# Запуск одной командой: docker compose up --build → http://localhost:8080
+# Данные хранятся в томе pgdata и переживают docker compose down (без -v) и перезапуск.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: timetracker
+      POSTGRES_USER: timetracker
+      POSTGRES_PASSWORD: timetracker
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Порт базы наружу не публикуется: не конфликтует с Postgres, уже стоящим на машине
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timetracker -d timetracker"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/timetracker
+      DB_USER: timetracker
+      DB_PASSWORD: timetracker
+      # Вымышленные сотрудники и записи при первом запуске (только на пустой базе)
+      APP_DEMO_DATA: "true"
+    ports:
+      # Только с этой машины: авторизации нет, соседям по сети таймеры не доступны.
+      # Порт 8080 занят? APP_PORT=8081 docker compose up --build
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+
+volumes:
+  pgdata:

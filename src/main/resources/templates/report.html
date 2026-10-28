@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Отчёт')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav('report')}"></nav>
+<main>
+	<h1>Отчёт за период</h1>
+
+	<form class="inline" method="get" th:action="@{/report}">
+		<label for="from">с</label>
+		<input type="date" id="from" name="from" th:value="${from}">
+		<label for="to">по</label>
+		<input type="date" id="to" name="to" th:value="${to}">
+		<button type="submit">Показать</button>
+	</form>
+	<p class="hint">Время — по Бишкеку. Учитывается только часть записи, попавшая в период; идущий таймер — до текущего момента.</p>
+
+	<div th:replace="~{fragments :: messages}"></div>
+
+	<th:block th:if="${report != null}">
+		<h2>Итого по сотрудникам</h2>
+		<p class="empty" th:if="${report.totals.isEmpty()}">Сотрудников пока нет.</p>
+		<table th:unless="${report.totals.isEmpty()}" class="totals">
+			<thead>
+			<tr><th>Сотрудник</th><th>Время</th></tr>
+			</thead>
+			<tbody>
+			<tr th:each="t : ${report.totals}">
+				<td th:text="${t.name}">Айбек Садыков</td>
+				<td class="num" th:text="${T(kg.timetracker.Formats).duration(t.duration)}">7 ч 05 мин</td>
+			</tr>
+			</tbody>
+			<tfoot>
+			<tr><th>Всего</th><th class="num" th:text="${T(kg.timetracker.Formats).duration(report.total)}">0 ч 00 мин</th></tr>
+			</tfoot>
+		</table>
+
+		<h2>Записи</h2>
+		<p class="empty" th:if="${report.rows.isEmpty()}">За этот период записей нет.</p>
+		<div class="table-wrap" th:unless="${report.rows.isEmpty()}">
+		<table>
+			<thead>
+			<tr><th>Сотрудник</th><th>Задача</th><th>Начало</th><th>Конец</th><th>В периоде</th></tr>
+			</thead>
+			<tbody>
+			<tr th:each="r : ${report.rows}">
+				<td th:text="${r.employeeName}">Айбек Садыков</td>
+				<td th:text="${r.description}">Вёрстка отчёта</td>
+				<td th:text="${T(kg.timetracker.Formats).dateTime(r.startedAt)}">28.10.2026 10:15</td>
+				<td th:text="${r.endedAt != null} ? ${T(kg.timetracker.Formats).dateTime(r.endedAt)} : 'идёт'">28.10.2026 12:00</td>
+				<td class="num" th:text="${T(kg.timetracker.Formats).duration(r.inPeriod)}">1 ч 45 мин</td>
+			</tr>
+			</tbody>
+		</table>
+		</div>
+	</th:block>
+</main>
+</body>
+</html>

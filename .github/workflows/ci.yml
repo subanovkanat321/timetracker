@@ -1,0 +1,62 @@
+# Тесты на каждый PR и push в main; отдельно — сборка образа и запуск через compose,
+# как это сделает проверяющий.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      # Testcontainers поднимает настоящий Postgres: Docker на раннерах GitHub уже есть
+      - name: Сборка и тесты
+        run: ./mvnw -B verify
+      - name: Отчёты тестов
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: 7
+
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: docker compose up --build
+        run: docker compose up -d --build
+      - name: Приложение отвечает, демо-данные на месте
+        run: |
+          for _ in $(seq 1 60); do curl -fs localhost:8080/ > /dev/null && break; sleep 2; done
+          # Сначала ответ целиком, потом grep: при pipefail `curl | grep -q` может упасть,
+          # если grep закроет канал раньше, чем curl допишет ответ
+          home=$(curl -fs localhost:8080/); grep -q 'Айбек Садыков' <<< "$home"
+          report=$(curl -fs localhost:8080/report); grep -q 'Итого по сотрудникам' <<< "$report"
+      - name: Данные переживают перезапуск
+        run: |
+          curl -fs -o /dev/null -X POST -d 'name=Проверка Перезапуска' localhost:8080/employees
+          docker compose down
+          docker compose up -d
+          for _ in $(seq 1 60); do curl -fs localhost:8080/ > /dev/null && break; sleep 2; done
+          home=$(curl -fs localhost:8080/); grep -q 'Проверка Перезапуска' <<< "$home"
+      - name: Логи
+        if: always()
+        run: docker compose logs --no-color --tail 200

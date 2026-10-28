@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: timetracker
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/timetracker}
+    username: ${DB_USER:timetracker}
+    password: ${DB_PASSWORD:timetracker}
+  jpa:
+    # Схему создаёт только Flyway; Hibernate лишь проверяет, что сущности ей соответствуют
+    hibernate:
+      ddl-auto: validate
+    # Соединение с базой не держится на всё время HTTP-запроса, только внутри транзакций
+    open-in-view: false
+
+server:
+  port: ${APP_PORT:8080}
+  tomcat:
+    # Формы здесь — имя и описание до 500 символов; больше 16 КБ не нужно (по умолчанию 2 МБ)
+    max-http-form-post-size: 16KB
+  servlet:
+    session:
+      # Сессия нужна только для flash-сообщений после редиректа. Без этой строки Tomcat при
+      # первом редиректе дописывает номер сессии в адрес: /;jsessionid=…
+      tracking-modes: cookie
+
+app:
+  # Демо-данные (вымышленные сотрудники и записи) при первом запуске; включает compose.yaml
+  demo-data: ${APP_DEMO_DATA:false}

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<!--/* Spring Boot показывает этот шаблон вместо английской «Whitelabel Error Page» при любой
+       необработанной ошибке. Комментарий Thymeleaf: в ответ браузеру не попадает */-->
+<head th:replace="~{fragments :: head('Ошибка')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav('')}"></nav>
+<main>
+	<h1>Что-то пошло не так</h1>
+	<p th:if="${status == 404}">Такой страницы нет.</p>
+	<p th:if="${status == 400}">Неверный запрос.</p>
+	<p th:unless="${status == 404 or status == 400}">Не удалось выполнить действие. Попробуйте ещё раз чуть позже.</p>
+	<p><small th:text="'Код ответа: ' + ${status}">Код ответа: 500</small></p>
+	<p><a th:href="@{/}">На главную</a></p>
+</main>
+</body>
+</html>
