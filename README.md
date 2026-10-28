@@ -36,6 +36,19 @@ APP_PORT=8081 docker compose up --build
 ./mvnw spring-boot:run
 ```
 
+**Демо на сервере.** Приложение работает рядом с интернет-магазином автора
+([subanovkanat321/store](https://github.com/subanovkanat321/store)) на том же VPS:
+`compose.prod.yaml` без открытых портов, HTTPS и адрес `timetracker.<домен>` даёт nginx
+магазина, он находит приложение по имени `timetracker` в Docker-сети магазина. Обновление на
+сервере:
+
+```bash
+cd /opt/timetracker && git pull --ff-only && docker compose -f compose.prod.yaml --env-file .env up -d --build
+```
+
+Авторизации нет, поэтому на демо кто угодно может добавлять сотрудников и запускать таймеры;
+все данные там вымышленные.
+
 ## Как проверить за 2 минуты
 
 1. **Сотрудники.** Добавьте сотрудника. Добавьте его ещё раз, другими буквами:
