@@ -12,6 +12,14 @@ spring:
     # Соединение с базой не держится на всё время HTTP-запроса, только внутри транзакций
     open-in-view: false
 
+server:
+  port: ${APP_PORT:8080}
+  servlet:
+    session:
+      # Сессия нужна только для flash-сообщений после редиректа. Без этой строки Tomcat при
+      # первом редиректе дописывает номер сессии в адрес: /;jsessionid=…
+      tracking-modes: cookie
+
 app:
   # Демо-данные (вымышленные сотрудники и записи) при первом запуске; включает compose.yaml
   demo-data: ${APP_DEMO_DATA:false}

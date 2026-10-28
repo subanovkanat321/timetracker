@@ -7,8 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
-	boolean existsByNameIgnoreCase(String name);
-
 	@Query("select e from Employee e order by lower(e.name)")
 	List<Employee> findAllByName();
 

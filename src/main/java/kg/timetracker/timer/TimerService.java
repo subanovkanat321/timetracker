@@ -1,24 +1,22 @@
 package kg.timetracker.timer;
 
 import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import kg.timetracker.BusinessException;
+import kg.timetracker.Formats;
 import kg.timetracker.employee.EmployeeRepository;
 
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Запись в базу: каждый метод — отдельная транзакция. Снаружи вызывается через
- * {@link TimerFacade}, который разбирает ошибку уникального индекса уже после отката.
- */
 @Service
-@Transactional
-class TimerService {
+public class TimerService {
 
 	static final int MAX_DESCRIPTION_LENGTH = 500;
 
@@ -26,15 +24,26 @@ class TimerService {
 
 	private final EmployeeRepository employees;
 
+	private final JdbcClient jdbc;
+
 	private final Clock clock;
 
-	TimerService(TimeEntryRepository entries, EmployeeRepository employees, Clock clock) {
+	TimerService(TimeEntryRepository entries, EmployeeRepository employees, JdbcClient jdbc, Clock clock) {
 		this.entries = entries;
 		this.employees = employees;
+		this.jdbc = jdbc;
 		this.clock = clock;
 	}
 
-	TimeEntry start(long employeeId, String rawDescription) {
+	/**
+	 * Запускает таймер. Второй идущий таймер у сотрудника невозможен: это правило держит
+	 * частичный уникальный индекс time_entry_one_running_uq. {@code ON CONFLICT ... DO NOTHING}
+	 * при его нарушении не бросает ошибку и не ломает транзакцию — просто не вставляет строку.
+	 * Если два «Старта» пришли одновременно, второй INSERT ждёт, пока первый закоммитится,
+	 * и после этого ничего не вставляет; следующий SELECT уже видит таймер победителя.
+	 */
+	@Transactional
+	public void start(long employeeId, String rawDescription) {
 		String description = rawDescription == null ? "" : rawDescription.strip();
 		if (description.isEmpty()) {
 			throw new BusinessException("Опишите задачу перед запуском таймера");
@@ -42,13 +51,31 @@ class TimerService {
 		if (description.length() > MAX_DESCRIPTION_LENGTH) {
 			throw new BusinessException("Описание длиннее " + MAX_DESCRIPTION_LENGTH + " символов");
 		}
-		var employee = employees.findById(employeeId).orElseThrow(TimerService::employeeNotFound);
-		// Без предварительной проверки «таймер уже идёт»: её всё равно обгонит параллельный
-		// запрос. Второй таймер не даст создать индекс time_entry_one_running_uq
-		return entries.saveAndFlush(new TimeEntry(employee, description, clock.instant(), null));
+		if (!employees.existsById(employeeId)) {
+			throw employeeNotFound();
+		}
+		boolean inserted = jdbc.sql("""
+				insert into time_entry (employee_id, description, started_at)
+				values (:employeeId, :description, :now)
+				on conflict (employee_id) where ended_at is null do nothing
+				returning id""")
+			.param("employeeId", employeeId)
+			.param("description", description)
+			.param("now", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
+			.query(Long.class)
+			.optional()
+			.isPresent();
+		if (!inserted) {
+			throw entries.findByEmployeeIdAndEndedAtIsNull(employeeId)
+				.map(running -> new BusinessException("У сотрудника уже идёт таймер: «%s» с %s"
+					.formatted(running.getDescription(), Formats.dateTime(running.getStartedAt()))))
+				// Победитель успел остановить свой таймер между нашим INSERT и SELECT
+				.orElseGet(() -> new BusinessException("У сотрудника уже идёт таймер"));
+		}
 	}
 
-	void stop(long employeeId) {
+	@Transactional
+	public void stop(long employeeId) {
 		if (!employees.existsById(employeeId)) {
 			throw employeeNotFound();
 		}
@@ -57,14 +84,9 @@ class TimerService {
 		}
 	}
 
-	@Transactional(readOnly = true)
-	Optional<TimeEntry> findRunning(long employeeId) {
-		return entries.findByEmployeeIdAndEndedAtIsNull(employeeId);
-	}
-
 	/** Идущие таймеры по id сотрудника — для главной страницы. */
 	@Transactional(readOnly = true)
-	Map<Long, TimeEntry> findAllRunning() {
+	public Map<Long, TimeEntry> findAllRunning() {
 		return entries.findByEndedAtIsNull()
 			.stream()
 			.collect(Collectors.toMap(t -> t.getEmployee().getId(), Function.identity()));

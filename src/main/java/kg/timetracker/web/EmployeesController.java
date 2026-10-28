@@ -8,7 +8,7 @@ import kg.timetracker.BusinessException;
 import kg.timetracker.Formats;
 import kg.timetracker.employee.EmployeeService;
 import kg.timetracker.timer.TimeEntry;
-import kg.timetracker.timer.TimerFacade;
+import kg.timetracker.timer.TimerService;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -28,11 +28,11 @@ class EmployeesController {
 
 	private final EmployeeService employees;
 
-	private final TimerFacade timers;
+	private final TimerService timers;
 
 	private final Clock clock;
 
-	EmployeesController(EmployeeService employees, TimerFacade timers, Clock clock) {
+	EmployeesController(EmployeeService employees, TimerService timers, Clock clock) {
 		this.employees = employees;
 		this.timers = timers;
 		this.clock = clock;
@@ -59,8 +59,7 @@ class EmployeesController {
 	@PostMapping("/employees")
 	String add(@RequestParam(defaultValue = "") String name, RedirectAttributes redirect) {
 		try {
-			var employee = employees.add(name);
-			redirect.addFlashAttribute("message", "Сотрудник «" + employee.getName() + "» добавлен");
+			redirect.addFlashAttribute("message", "Сотрудник «" + employees.add(name) + "» добавлен");
 		}
 		catch (BusinessException e) {
 			redirect.addFlashAttribute("error", e.getMessage());

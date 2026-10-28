@@ -18,10 +18,13 @@ public final class Formats {
 		return DATE_TIME.format(instant);
 	}
 
-	/** «7 ч 05 мин». Секунды отбрасываются: 59 секунд — это «0 ч 00 мин». */
+	/**
+	 * «7 ч 05 мин 12 с». С секундами: тогда сумма строк отчёта всегда равна итогу,
+	 * а короткая запись не выглядит пустой. Доли секунды отбрасываются.
+	 */
 	public static String duration(Duration duration) {
-		long minutes = duration.toMinutes();
-		return "%d ч %02d мин".formatted(minutes / 60, minutes % 60);
+		long seconds = duration.toSeconds();
+		return "%d ч %02d мин %02d с".formatted(seconds / 3600, seconds / 60 % 60, seconds % 60);
 	}
 
 }

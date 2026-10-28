@@ -1,11 +1,13 @@
 package kg.timetracker.employee;
 
 import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import kg.timetracker.BusinessException;
 
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,14 +18,23 @@ public class EmployeeService {
 
 	private final EmployeeRepository employees;
 
+	private final JdbcClient jdbc;
+
 	private final Clock clock;
 
-	EmployeeService(EmployeeRepository employees, Clock clock) {
+	EmployeeService(EmployeeRepository employees, JdbcClient jdbc, Clock clock) {
 		this.employees = employees;
+		this.jdbc = jdbc;
 		this.clock = clock;
 	}
 
-	public Employee add(String rawName) {
+	/**
+	 * Добавляет сотрудника и возвращает сохранённое имя (без пробелов по краям).
+	 * Дубликат без учёта регистра отсекает индекс employee_name_uq на lower(name):
+	 * {@code ON CONFLICT ... DO NOTHING} тогда ничего не вставляет — проверять заранее не нужно.
+	 */
+	@Transactional
+	public String add(String rawName) {
 		String name = rawName == null ? "" : rawName.strip();
 		if (name.isEmpty()) {
 			throw new BusinessException("Введите имя сотрудника");
@@ -31,26 +42,25 @@ public class EmployeeService {
 		if (name.length() > MAX_NAME_LENGTH) {
 			throw new BusinessException("Имя длиннее " + MAX_NAME_LENGTH + " символов");
 		}
-		if (employees.existsByNameIgnoreCase(name)) {
-			throw duplicate(name);
+		boolean inserted = jdbc.sql("""
+				insert into employee (name, created_at)
+				values (:name, :now)
+				on conflict ((lower(name))) do nothing
+				returning id""")
+			.param("name", name)
+			.param("now", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
+			.query(Long.class)
+			.optional()
+			.isPresent();
+		if (!inserted) {
+			throw new BusinessException("Сотрудник «" + name + "» уже есть");
 		}
-		try {
-			return employees.saveAndFlush(new Employee(name, clock.instant()));
-		}
-		catch (DataIntegrityViolationException e) {
-			// Тот же сотрудник добавлен параллельно между проверкой и вставкой: сработал
-			// уникальный индекс employee_name_uq
-			throw duplicate(name);
-		}
+		return name;
 	}
 
 	@Transactional(readOnly = true)
 	public List<Employee> findAll() {
 		return employees.findAllByName();
-	}
-
-	private static BusinessException duplicate(String name) {
-		return new BusinessException("Сотрудник «" + name + "» уже есть");
 	}
 
 }

@@ -53,8 +53,10 @@ public class ReportService {
 		List<Report.Row> rows = new ArrayList<>();
 		for (TimeEntry t : entries.findOverlapping(start, end)) {
 			Duration inPeriod = Overlap.of(t.getStartedAt(), t.getEndedAt(), start, end, now);
-			// Таймер, который идёт, но период ещё не наступил, даёт 0 — такую запись не показываем
-			if (inPeriod.isPositive()) {
+			// Не показываем только идущий таймер в периоде, который ещё не наступил.
+			// Запись нулевой длины (Старт и Стоп в одну секунду) показываем: она была
+			boolean periodNotStarted = t.isRunning() && !now.isAfter(start);
+			if (!periodNotStarted) {
 				rows.add(new Report.Row(t.getEmployee().getName(), t.getDescription(), t.getStartedAt(),
 						t.getEndedAt(), inPeriod));
 				byEmployee.merge(t.getEmployee().getId(), inPeriod, Duration::plus);

@@ -24,11 +24,6 @@ public class Employee {
 	protected Employee() {
 	}
 
-	public Employee(String name, Instant createdAt) {
-		this.name = name;
-		this.createdAt = createdAt;
-	}
-
 	public Long getId() {
 		return id;
 	}
