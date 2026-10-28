@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title th:text="${title} + ' — Учёт времени'">Учёт времени</title>
+	<link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<nav th:fragment="nav(active)">
+	<strong>Учёт времени</strong>
+	<a th:href="@{/}" th:classappend="${active == 'employees'} ? 'active'">Сотрудники</a>
+	<a th:href="@{/report}" th:classappend="${active == 'report'} ? 'active'">Отчёт</a>
+</nav>
+<div th:fragment="messages">
+	<p class="flash error" th:if="${error}" th:text="${error}" role="alert"></p>
+	<p class="flash ok" th:if="${message}" th:text="${message}" role="status"></p>
+</div>
+</body>
+</html>

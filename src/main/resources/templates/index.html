@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Сотрудники')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav('employees')}"></nav>
+<main>
+	<h1>Сотрудники</h1>
+	<div th:replace="~{fragments :: messages}"></div>
+
+	<form class="inline" method="post" th:action="@{/employees}">
+		<label for="name">Новый сотрудник</label>
+		<input id="name" name="name" maxlength="100" required placeholder="Имя и фамилия" th:value="${name}">
+		<button type="submit">Добавить</button>
+	</form>
+
+	<p class="empty" th:if="${rows.isEmpty()}">Сотрудников пока нет — добавьте первого.</p>
+
+	<table th:unless="${rows.isEmpty()}">
+		<thead>
+		<tr><th>Сотрудник</th><th>Таймер</th></tr>
+		</thead>
+		<tbody>
+		<tr th:each="row : ${rows}">
+			<td th:text="${row.name}">Айбек Садыков</td>
+			<td th:if="${row.task != null}">
+				<form class="inline" method="post" th:action="@{/employees/{id}/stop(id=${row.id})}">
+					<span class="running">
+						идёт <time class="elapsed" th:attr="data-elapsed=${row.elapsedSeconds}">00:00:00</time>
+						— <span th:text="${row.task}">Вёрстка отчёта</span>
+						<small th:text="'с ' + ${row.since}">с 28.10.2026 10:15</small>
+					</span>
+					<button type="submit" class="stop">Стоп</button>
+				</form>
+			</td>
+			<td th:if="${row.task == null}">
+				<form class="inline" method="post" th:action="@{/employees/{id}/start(id=${row.id})}">
+					<input name="description" maxlength="500" required placeholder="Над чем работаете?"
+						   th:aria-label="'Задача для ' + ${row.name}"
+						   th:value="${failedEmployeeId == row.id} ? ${description} : ''">
+					<button type="submit">Старт</button>
+				</form>
+			</td>
+		</tr>
+		</tbody>
+	</table>
+</main>
+<script th:src="@{/timer.js}"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: timetracker
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/timetracker}
+    username: ${DB_USER:timetracker}
+    password: ${DB_PASSWORD:timetracker}
+  jpa:
+    # Схему создаёт только Flyway; Hibernate лишь проверяет, что сущности ей соответствуют
+    hibernate:
+      ddl-auto: validate
+    # Соединение с базой не держится на всё время HTTP-запроса, только внутри транзакций
+    open-in-view: false
+
+app:
+  # Демо-данные (вымышленные сотрудники и записи) при первом запуске; включает compose.yaml
+  demo-data: ${APP_DEMO_DATA:false}
