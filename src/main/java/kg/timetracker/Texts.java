@@ -35,7 +35,12 @@ public final class Texts {
 
 	/** Не длиннее {@code max} символов — для того, что возвращается в форму через сессию. */
 	public static String limit(String text, int max) {
-		return text.length() <= max ? text : text.substring(0, max);
+		if (text.length() <= max) {
+			return text;
+		}
+		// Не разрывать суррогатную пару (эмодзи и т. п.) на границе обрезки
+		int end = Character.isHighSurrogate(text.charAt(max - 1)) ? max - 1 : max;
+		return text.substring(0, end);
 	}
 
 }
