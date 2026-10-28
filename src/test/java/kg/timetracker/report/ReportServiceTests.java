@@ -139,6 +139,22 @@ class ReportServiceTests extends IntegrationTest {
 	}
 
 	@Test
+	void rowsAddUpToTotalWithFractionalSeconds() {
+		long id = insertEmployee("Айбек");
+		// Записи с долями секунды (например, сделанные до округления времени) и идущий таймер
+		insertEntry(id, "Первая", at("2026-10-27T10:00").plusMillis(300), at("2026-10-27T10:00").plusMillis(1_900));
+		insertEntry(id, "Вторая", at("2026-10-27T11:00").plusMillis(300), at("2026-10-27T11:00").plusMillis(1_900));
+		insertEntry(id, "Идёт", at("2026-10-27T12:00").plusMillis(500), null);
+
+		Report report = reports.build(TUESDAY, TUESDAY);
+
+		// Каждая строка — целые секунды, итог — ровно их сумма: на экране всё сходится
+		assertThat(report.rows()).allSatisfy(row -> assertThat(row.inPeriod().getNano()).isZero());
+		Duration sumOfRows = report.rows().stream().map(Report.Row::inPeriod).reduce(Duration.ZERO, Duration::plus);
+		assertThat(report.total()).isEqualTo(sumOfRows);
+	}
+
+	@Test
 	void fromAfterToIsRejected() {
 		assertThatThrownBy(() -> reports.build(TUESDAY, MONDAY)).isInstanceOf(BusinessException.class)
 			.hasMessage("Дата «с» позже даты «по»");

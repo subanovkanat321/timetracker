@@ -6,6 +6,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import kg.timetracker.BusinessException;
+import kg.timetracker.Texts;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,9 @@ public class EmployeeService {
 		String name = rawName == null ? "" : rawName.strip();
 		if (name.isEmpty()) {
 			throw new BusinessException("Введите имя сотрудника");
+		}
+		if (Texts.hasForbiddenCharacters(name)) {
+			throw new BusinessException("Имя содержит недопустимые символы");
 		}
 		if (name.length() > MAX_NAME_LENGTH) {
 			throw new BusinessException("Имя длиннее " + MAX_NAME_LENGTH + " символов");

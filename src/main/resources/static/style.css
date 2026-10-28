@@ -48,6 +48,8 @@ button {
 	cursor: pointer;
 }
 button.stop { background: var(--danger); border-color: var(--danger); }
+button:hover { filter: brightness(0.9); }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }

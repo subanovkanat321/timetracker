@@ -150,6 +150,28 @@ class TimerServiceTests extends IntegrationTest {
 		assertThat(count("select count(*) from time_entry")).isZero();
 	}
 
+	@Test
+	void descriptionWithControlCharactersIsRejected() {
+		long id = insertEmployee("Айбек");
+
+		assertThatThrownBy(() -> timers.start(id, "Задача\u0000")).isInstanceOf(BusinessException.class)
+			.hasMessage("Описание содержит недопустимые символы");
+		assertThat(count("select count(*) from time_entry")).isZero();
+	}
+
+	@Test
+	void timesAreStoredInWholeSeconds() {
+		long id = insertEmployee("Айбек");
+		clock.set(MutableClock.DEFAULT.plusMillis(1_600));
+
+		timers.start(id, "Задача");
+		clock.advance(Duration.ofMillis(1_600));
+		timers.stop(id);
+
+		assertThat(count("select count(*) from time_entry where started_at = date_trunc('second', started_at)"
+				+ " and ended_at = date_trunc('second', ended_at)")).isEqualTo(1);
+	}
+
 	private void awaitLockWait() throws InterruptedException {
 		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 		while (System.nanoTime() < deadline) {

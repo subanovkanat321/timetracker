@@ -1,14 +1,17 @@
 package kg.timetracker.timer;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import kg.timetracker.BusinessException;
 import kg.timetracker.Formats;
+import kg.timetracker.Texts;
 import kg.timetracker.employee.EmployeeRepository;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -48,6 +51,9 @@ public class TimerService {
 		if (description.isEmpty()) {
 			throw new BusinessException("Опишите задачу перед запуском таймера");
 		}
+		if (Texts.hasForbiddenCharacters(description)) {
+			throw new BusinessException("Описание содержит недопустимые символы");
+		}
 		if (description.length() > MAX_DESCRIPTION_LENGTH) {
 			throw new BusinessException("Описание длиннее " + MAX_DESCRIPTION_LENGTH + " символов");
 		}
@@ -61,7 +67,7 @@ public class TimerService {
 				returning id""")
 			.param("employeeId", employeeId)
 			.param("description", description)
-			.param("now", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
+			.param("now", OffsetDateTime.ofInstant(now(), ZoneOffset.UTC))
 			.query(Long.class)
 			.optional()
 			.isPresent();
@@ -79,7 +85,7 @@ public class TimerService {
 		if (!employees.existsById(employeeId)) {
 			throw employeeNotFound();
 		}
-		if (entries.stopRunning(employeeId, clock.instant()) == 0) {
+		if (entries.stopRunning(employeeId, now()) == 0) {
 			throw new BusinessException("Таймер не запущен");
 		}
 	}
@@ -90,6 +96,11 @@ public class TimerService {
 		return entries.findByEndedAtIsNull()
 			.stream()
 			.collect(Collectors.toMap(t -> t.getEmployee().getId(), Function.identity()));
+	}
+
+	/** Время с точностью до секунды: доли секунды на экране не видны и не должны копиться в суммах. */
+	private Instant now() {
+		return clock.instant().truncatedTo(ChronoUnit.SECONDS);
 	}
 
 	private static BusinessException employeeNotFound() {

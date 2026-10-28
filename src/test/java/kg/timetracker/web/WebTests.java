@@ -91,6 +91,55 @@ class WebTests extends IntegrationTest {
 	}
 
 	@Test
+	void reportShowsRowsWithTimesAndRunningTimer() throws Exception {
+		long id = insertEmployee("Айбек");
+		// 10:00–11:30 по Бишкеку и идущий таймер с 12:30 (сейчас 13:00)
+		insertEntry(id, "Вёрстка", java.time.Instant.parse("2026-10-27T04:00:00Z"),
+				java.time.Instant.parse("2026-10-27T05:30:00Z"));
+		insertEntry(id, "Ревью", java.time.Instant.parse("2026-10-27T06:30:00Z"), null);
+
+		mvc.perform(get("/report").param("from", "2026-10-27").param("to", "2026-10-27"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("27.10.2026 10:00")))
+			.andExpect(content().string(containsString("27.10.2026 11:30")))
+			.andExpect(content().string(containsString("1 ч 30 мин 00 с")))
+			.andExpect(content().string(containsString("идёт")))
+			.andExpect(content().string(containsString("2 ч 00 мин 00 с")));
+	}
+
+	@Test
+	void stopViaWebStopsTimerAndReportsMissingOne() throws Exception {
+		long id = insertEmployee("Айбек");
+		mvc.perform(post("/employees/{id}/start", id).param("description", "Задача"));
+
+		mvc.perform(post("/employees/{id}/stop", id))
+			.andExpect(redirectedUrl("/"))
+			.andExpect(flash().attributeCount(0));
+		mvc.perform(get("/")).andExpect(content().string(not(containsString("Стоп"))));
+
+		mvc.perform(post("/employees/{id}/stop", id))
+			.andExpect(redirectedUrl("/"))
+			.andExpect(flash().attribute("error", "Таймер не запущен"));
+	}
+
+	@Test
+	void extremeDatesShowMessageInsteadOfError() throws Exception {
+		mvc.perform(get("/report").param("from", "2026-10-26").param("to", "+999999999-12-31"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Дата должна быть с 2000 по 2100 год")));
+		mvc.perform(get("/report").param("from", "+300000-01-01").param("to", "+300000-01-02"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Дата должна быть с 2000 по 2100 год")));
+	}
+
+	@Test
+	void periodLongerThanYearIsRejected() throws Exception {
+		mvc.perform(get("/report").param("from", "2025-01-01").param("to", "2026-06-01"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Период не длиннее года")));
+	}
+
+	@Test
 	void invalidDateShowsMessageInsteadOfError() throws Exception {
 		mvc.perform(get("/report").param("from", "abc"))
 			.andExpect(status().isOk())

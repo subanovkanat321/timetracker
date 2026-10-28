@@ -29,7 +29,7 @@
 						— <span th:text="${row.task}">Вёрстка отчёта</span>
 						<small th:text="'с ' + ${row.since}">с 28.10.2026 10:15</small>
 					</span>
-					<button type="submit" class="stop">Стоп</button>
+					<button type="submit" class="stop" th:aria-label="'Остановить таймер: ' + ${row.name}">Стоп</button>
 				</form>
 			</td>
 			<td th:if="${row.task == null}">
@@ -37,7 +37,7 @@
 					<input name="description" maxlength="500" required placeholder="Над чем работаете?"
 						   th:aria-label="'Задача для ' + ${row.name}"
 						   th:value="${failedEmployeeId == row.id} ? ${description} : ''">
-					<button type="submit">Старт</button>
+					<button type="submit" th:aria-label="'Запустить таймер: ' + ${row.name}">Старт</button>
 				</form>
 			</td>
 		</tr>

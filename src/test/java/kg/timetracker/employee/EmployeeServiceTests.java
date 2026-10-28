@@ -46,6 +46,17 @@ class EmployeeServiceTests extends IntegrationTest {
 	}
 
 	@Test
+	void rejectsControlAndInvisibleCharacters() {
+		// \0 Postgres не хранит в тексте; без проверки это был 500
+		assertThatThrownBy(() -> employees.add("Ай\u0000бек")).isInstanceOf(BusinessException.class)
+			.hasMessage("Имя содержит недопустимые символы");
+		// Имя из одних невидимых символов — не имя
+		assertThatThrownBy(() -> employees.add("\u200B\u200B")).isInstanceOf(BusinessException.class)
+			.hasMessage("Имя содержит недопустимые символы");
+		assertThat(count("select count(*) from employee")).isZero();
+	}
+
+	@Test
 	void listsEmployeesByNameIgnoringCase() {
 		employees.add("нургуль");
 		employees.add("Айбек");

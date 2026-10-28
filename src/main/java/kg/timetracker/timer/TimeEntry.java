@@ -37,17 +37,6 @@ public class TimeEntry {
 	protected TimeEntry() {
 	}
 
-	public TimeEntry(Employee employee, String description, Instant startedAt, Instant endedAt) {
-		this.employee = employee;
-		this.description = description;
-		this.startedAt = startedAt;
-		this.endedAt = endedAt;
-	}
-
-	public Long getId() {
-		return id;
-	}
-
 	public Employee getEmployee() {
 		return employee;
 	}

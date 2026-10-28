@@ -5,6 +5,7 @@ import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ReportService {
+
+	static final int MIN_YEAR = 2000;
+
+	static final int MAX_YEAR = 2100;
+
+	static final int MAX_PERIOD_DAYS = 366;
 
 	private final TimeEntryRepository entries;
 
@@ -41,8 +48,18 @@ public class ReportService {
 	 */
 	@Transactional(readOnly = true)
 	public Report build(LocalDate from, LocalDate to) {
+		// Границы до любых вычислений: на годах вроде +999999999 падает plusDays,
+		// а за пределами диапазона timestamptz — запрос к Postgres
+		for (LocalDate date : List.of(from, to)) {
+			if (date.getYear() < MIN_YEAR || date.getYear() > MAX_YEAR) {
+				throw new BusinessException("Дата должна быть с %d по %d год".formatted(MIN_YEAR, MAX_YEAR));
+			}
+		}
 		if (from.isAfter(to)) {
 			throw new BusinessException("Дата «с» позже даты «по»");
+		}
+		if (ChronoUnit.DAYS.between(from, to) >= MAX_PERIOD_DAYS) {
+			throw new BusinessException("Период не длиннее года");
 		}
 		// Дни по Бишкеку → полуинтервал в UTC: [from 00:00, (to + 1) 00:00)
 		Instant start = from.atStartOfDay(TimetrackerApplication.ZONE).toInstant();
@@ -52,7 +69,9 @@ public class ReportService {
 		Map<Long, Duration> byEmployee = new HashMap<>();
 		List<Report.Row> rows = new ArrayList<>();
 		for (TimeEntry t : entries.findOverlapping(start, end)) {
-			Duration inPeriod = Overlap.of(t.getStartedAt(), t.getEndedAt(), start, end, now);
+			// До целых секунд у каждой строки: тогда итог — ровно сумма того, что видно на экране
+			Duration inPeriod = Overlap.of(t.getStartedAt(), t.getEndedAt(), start, end, now)
+				.truncatedTo(ChronoUnit.SECONDS);
 			// Не показываем только идущий таймер в периоде, который ещё не наступил.
 			// Запись нулевой длины (Старт и Стоп в одну секунду) показываем: она была
 			boolean periodNotStarted = t.isRunning() && !now.isAfter(start);

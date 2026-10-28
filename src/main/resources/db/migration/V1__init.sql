@@ -16,7 +16,8 @@ create table time_entry (
 );
 
 -- Не больше одного идущего таймера на сотрудника. Правило держит база, а не код:
--- два одновременных «Старта» не создадут два таймера (второй INSERT получит ошибку)
+-- два одновременных «Старта» не создадут два таймера. Второй INSERT с ON CONFLICT
+-- DO NOTHING (TimerService.start) дождётся первого и ничего не вставит
 create unique index time_entry_one_running_uq on time_entry (employee_id) where ended_at is null;
 
 create index time_entry_started_idx on time_entry (started_at);

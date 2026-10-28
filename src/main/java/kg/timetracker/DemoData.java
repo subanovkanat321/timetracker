@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -50,7 +51,7 @@ class DemoData implements ApplicationRunner {
 		entry(nurgul, "Звонок с поставщиком", today.minusDays(2), "10:00", "10:45");
 		entry(nurgul, "Подготовка счетов", today.minusDays(1), "11:00", "17:20");
 		// Идущий таймер: начат 25 минут назад
-		Instant now = clock.instant();
+		Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
 		insert(aibek, "Исправление ошибок в отчёте", now.minus(Duration.ofMinutes(25)), null);
 	}
 
