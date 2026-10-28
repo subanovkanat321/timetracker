@@ -1,0 +1,13 @@
+# Caddy для compose.prod.yaml: HTTPS для домена из .env, http → https, всё — в приложение.
+# Для DOMAIN=localhost (CI) сертификат выдаёт сам Caddy, без Let's Encrypt.
+{$DOMAIN} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	reverse_proxy app:8080
+}

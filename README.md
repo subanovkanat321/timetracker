@@ -36,6 +36,21 @@ APP_PORT=8081 docker compose up --build
 ./mvnw spring-boot:run
 ```
 
+**Демо на сервере.** `compose.prod.yaml`: приложение, база и Caddy, который получает
+HTTPS-сертификат Let's Encrypt и продлевает его сам. Наружу открыты только порты 80 и 443.
+Первый запуск на VPS с Docker (DNS домена должен указывать на сервер; без своего домена подойдёт
+`<ip-через-дефисы>.sslip.io`):
+
+```bash
+git clone https://github.com/subanovkanat321/timetracker.git /opt/timetracker && cd /opt/timetracker
+printf 'DOMAIN=%s\nDB_PASSWORD=%s\n' timetracker.164-92-189-88.sslip.io "$(openssl rand -hex 24)" > .env && chmod 600 .env
+docker compose -f compose.prod.yaml --env-file .env up -d --build
+```
+
+Обновление: `git pull --ff-only && docker compose -f compose.prod.yaml --env-file .env up -d --build`.
+Авторизации нет, поэтому на демо кто угодно может добавлять сотрудников и запускать таймеры;
+все данные там вымышленные.
+
 ## Как проверить за 2 минуты
 
 1. **Сотрудники.** Добавьте сотрудника. Добавьте его ещё раз, другими буквами:

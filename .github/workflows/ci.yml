@@ -57,6 +57,22 @@ jobs:
           docker compose up -d
           for _ in $(seq 1 60); do curl -fs localhost:8080/ > /dev/null && break; sleep 2; done
           home=$(curl -fs localhost:8080/); grep -q 'Проверка Перезапуска' <<< "$home"
+      - name: Прод-compose — HTTPS через Caddy, наружу только 80 и 443
+        run: |
+          docker compose down
+          printf 'DOMAIN=localhost\nDB_PASSWORD=ci-db-password\n' > .env
+          docker compose -f compose.prod.yaml --env-file .env up -d --build
+          # localhost: сертификат выдаёт сам Caddy (без Let's Encrypt), поэтому -k
+          for _ in $(seq 1 60); do curl -kfs https://localhost/ > /dev/null && break; sleep 2; done
+          home=$(curl -kfs https://localhost/); grep -q 'Айбек Садыков' <<< "$home"
+          headers=$(curl -ksI https://localhost/); grep -qi '^strict-transport-security:' <<< "$headers"
+          # http → https; редирект после POST — тоже на https (X-Forwarded-Proto от Caddy)
+          grep -qi '^location: https://' <<< "$(curl -sI http://localhost/)"
+          test "$(curl -ks -o /dev/null -w '%{redirect_url}' -X POST -d 'name=Через Caddy' https://localhost/employees)" = https://localhost/
+          # Приложение наружу не открыто
+          if curl -fs localhost:8080/ > /dev/null; then echo "порт 8080 открыт наружу"; exit 1; fi
       - name: Логи
         if: always()
-        run: docker compose logs --no-color --tail 200
+        run: |
+          docker compose logs --no-color --tail 200
+          docker compose -f compose.prod.yaml --env-file .env logs --no-color --tail 200 || true

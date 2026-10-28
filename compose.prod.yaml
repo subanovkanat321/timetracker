@@ -1,0 +1,66 @@
+# Демо на VPS: приложение, база и Caddy (HTTPS от Let's Encrypt, получает и продлевает сам).
+# Наружу открыты только 80 и 443 у Caddy; приложение и база — внутри сети Docker.
+#
+#   cd /opt/timetracker
+#   printf 'DOMAIN=%s\nDB_PASSWORD=%s\n' timetracker.<ip-через-дефисы>.sslip.io "$(openssl rand -hex 24)" > .env
+#   chmod 600 .env
+#   docker compose -f compose.prod.yaml --env-file .env up -d --build
+# Своё имя проекта: без него прод взял бы тома compose.yaml из той же папки (проект timetracker),
+# и Postgres остался бы с паролем из dev-базы — POSTGRES_PASSWORD действует только на пустой том
+name: timetracker-prod
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: timetracker
+      POSTGRES_USER: timetracker
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?задайте DB_PASSWORD в .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timetracker -d timetracker"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    mem_limit: 256m
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/timetracker
+      DB_USER: timetracker
+      DB_PASSWORD: ${DB_PASSWORD}
+      APP_DEMO_DATA: "true"
+      # Запросы приходят от Caddy: схема https и адрес клиента — из X-Forwarded-*
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+      # Куча — доля от mem_limit контейнера, а не от памяти всего сервера
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
+    # В простое ~270 МБ (куча + метаданные классов + потоки); куча до 60% = ~300 МБ
+    mem_limit: 512m
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?задайте DOMAIN в .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Сертификаты: без тома Caddy запрашивал бы их заново при каждом перезапуске
+      # и упёрся бы в лимиты Let's Encrypt
+      - caddy_data:/data
+    mem_limit: 128m
+
+volumes:
+  pgdata:
+  caddy_data:
