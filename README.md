@@ -2,6 +2,9 @@
 
 [![CI](https://github.com/subanovkanat321/timetracker/actions/workflows/ci.yml/badge.svg)](https://github.com/subanovkanat321/timetracker/actions/workflows/ci.yml)
 
+**🔗 Демо: [timetracker.164-92-189-88.sslip.io](https://timetracker.164-92-189-88.sslip.io/)** — работает на сервере,
+данные вымышленные, можно добавлять сотрудников и запускать таймеры.
+
 Небольшое веб-приложение: сотрудники запускают и останавливают таймер с описанием задачи,
 руководитель смотрит записи и общее время каждого сотрудника за выбранный период. Данные
 хранятся в PostgreSQL и переживают перезапуск. Все данные в проекте вымышленные.
@@ -13,9 +16,11 @@ Flyway. Для тестов — JUnit 5, MockMvc, Testcontainers.
 
 ## Запуск
 
-Нужен Docker.
+На своём компьютере, нужен Docker (Docker Desktop на Windows и macOS). Скачать проект и
+запустить из его папки:
 
 ```bash
+git clone https://github.com/subanovkanat321/timetracker.git && cd timetracker
 docker compose up --build
 ```
 
