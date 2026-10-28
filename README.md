@@ -36,16 +36,18 @@ APP_PORT=8081 docker compose up --build
 ./mvnw spring-boot:run
 ```
 
-**Демо на сервере.** Приложение работает рядом с интернет-магазином автора
-([subanovkanat321/store](https://github.com/subanovkanat321/store)) на том же VPS:
-`compose.prod.yaml` без открытых портов, HTTPS и адрес `timetracker.<домен>` даёт nginx
-магазина, он находит приложение по имени `timetracker` в Docker-сети магазина. Обновление на
-сервере:
+**Демо на сервере.** `compose.prod.yaml`: приложение, база и Caddy, который получает
+HTTPS-сертификат Let's Encrypt и продлевает его сам. Наружу открыты только порты 80 и 443.
+Первый запуск на VPS с Docker (DNS домена должен указывать на сервер; без своего домена подойдёт
+`<ip-через-дефисы>.sslip.io`):
 
 ```bash
-cd /opt/timetracker && git pull --ff-only && docker compose -f compose.prod.yaml --env-file .env up -d --build
+git clone https://github.com/subanovkanat321/timetracker.git /opt/timetracker && cd /opt/timetracker
+printf 'DOMAIN=%s\nDB_PASSWORD=%s\n' timetracker.164-92-189-88.sslip.io "$(openssl rand -hex 24)" > .env && chmod 600 .env
+docker compose -f compose.prod.yaml --env-file .env up -d --build
 ```
 
+Обновление: `git pull --ff-only && docker compose -f compose.prod.yaml --env-file .env up -d --build`.
 Авторизации нет, поэтому на демо кто угодно может добавлять сотрудников и запускать таймеры;
 все данные там вымышленные.
 

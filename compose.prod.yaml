@@ -1,9 +1,9 @@
-# Демо на сервере рядом с интернет-магазином (репозиторий subanovkanat321/store).
-# Порты наружу не открываются: HTTPS и адрес timetracker.<домен> даёт nginx магазина. Он
-# находит приложение по имени timetracker в Docker-сети магазина (store_default).
+# Демо на VPS: приложение, база и Caddy (HTTPS от Let's Encrypt, получает и продлевает сам).
+# Наружу открыты только 80 и 443 у Caddy; приложение и база — внутри сети Docker.
 #
 #   cd /opt/timetracker
-#   echo "DB_PASSWORD=$(openssl rand -hex 24)" > .env && chmod 600 .env   # один раз
+#   printf 'DOMAIN=%s\nDB_PASSWORD=%s\n' timetracker.<ip-через-дефисы>.sslip.io "$(openssl rand -hex 24)" > .env
+#   chmod 600 .env
 #   docker compose -f compose.prod.yaml --env-file .env up -d --build
 name: timetracker
 
@@ -22,7 +22,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-    # Сервер общий с магазином (2 ГБ): лимиты, чтобы демо не выдавило магазин
     mem_limit: 256m
 
   app:
@@ -36,23 +35,30 @@ services:
       DB_USER: timetracker
       DB_PASSWORD: ${DB_PASSWORD}
       APP_DEMO_DATA: "true"
-      # Запросы приходят от nginx: схема https и адрес клиента — из X-Forwarded-*
+      # Запросы приходят от Caddy: схема https и адрес клиента — из X-Forwarded-*
       SERVER_FORWARD_HEADERS_STRATEGY: native
       # Куча — доля от mem_limit контейнера, а не от памяти всего сервера
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
-    networks:
-      default:
-      store:
-        aliases:
-          - timetracker
     # В простое ~270 МБ (куча + метаданные классов + потоки); куча до 60% = ~300 МБ
     mem_limit: 512m
 
-networks:
-  # Сеть магазина: в ней nginx магазина видит приложение по имени timetracker
-  store:
-    external: true
-    name: ${STORE_NETWORK:-store_default}
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?задайте DOMAIN в .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Сертификаты: без тома Caddy запрашивал бы их заново при каждом перезапуске
+      # и упёрся бы в лимиты Let's Encrypt
+      - caddy_data:/data
+    mem_limit: 128m
 
 volumes:
   pgdata:
+  caddy_data:
