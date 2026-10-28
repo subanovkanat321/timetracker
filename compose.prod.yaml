@@ -5,7 +5,9 @@
 #   printf 'DOMAIN=%s\nDB_PASSWORD=%s\n' timetracker.<ip-через-дефисы>.sslip.io "$(openssl rand -hex 24)" > .env
 #   chmod 600 .env
 #   docker compose -f compose.prod.yaml --env-file .env up -d --build
-name: timetracker
+# Своё имя проекта: без него прод взял бы тома compose.yaml из той же папки (проект timetracker),
+# и Postgres остался бы с паролем из dev-базы — POSTGRES_PASSWORD действует только на пустой том
+name: timetracker-prod
 
 services:
   db:
