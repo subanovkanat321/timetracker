@@ -36,7 +36,10 @@ form.inline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; mar
 main > form.inline { margin-bottom: 16px; }
 
 input { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
-input[name="name"], input[name="description"] { flex: 1 1 220px; }
+input[name="name"], input[name="description"] { flex: 1 1 140px; }
+/* Своя ширина поля (~20 символов) не даёт колонке таблицы сжаться на телефоне; flex всё равно
+   растягивает поле на всю ячейку на широком экране */
+input[name="description"] { width: 8em; }
 
 button {
 	font: inherit;
@@ -55,6 +58,8 @@ table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 td.num, th.num { text-align: right; white-space: nowrap; }
 table.totals { max-width: 480px; }
+/* Широкая таблица записей на телефоне прокручивается сама, а не растягивает страницу */
+.table-wrap { overflow-x: auto; }
 
 .running { flex: 1 1 auto; }
 .elapsed { font-variant-numeric: tabular-nums; font-weight: 600; }

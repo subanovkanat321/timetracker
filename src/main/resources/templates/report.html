@@ -37,7 +37,8 @@
 
 		<h2>Записи</h2>
 		<p class="empty" th:if="${report.rows.isEmpty()}">За этот период записей нет.</p>
-		<table th:unless="${report.rows.isEmpty()}">
+		<div class="table-wrap" th:unless="${report.rows.isEmpty()}">
+		<table>
 			<thead>
 			<tr><th>Сотрудник</th><th>Задача</th><th>Начало</th><th>Конец</th><th>В периоде</th></tr>
 			</thead>
@@ -51,6 +52,7 @@
 			</tr>
 			</tbody>
 		</table>
+		</div>
 	</th:block>
 </main>
 </body>
